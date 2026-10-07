@@ -1,0 +1,41 @@
+name: Web fixes
+
+on:
+  push:
+    branches: [web-fixes]
+  pull_request:
+    branches: [web-fixes]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test-and-build:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          rustflags: ""
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check formatting and generated assets
+        run: |
+          cargo fmt --all -- --check
+          cargo xtask assets --check
+      - name: Test keyboard capture
+        run: node --test zellij-client/tests/*.test.mjs
+      - name: Test web input and CLI parsing
+        run: |
+          cargo test --locked -p zellij-utils --lib cli::tests
+          cargo test --locked -p zellij-client --features web_server_capability --lib web_client::message_handlers::tests
+      - name: Build with bundled plugins and web support
+        run: cargo build --locked --release --no-default-features --features web_server_capability
+      - name: Package binary
+        run: tar -C target/release -czf zellij-web-fixes-linux-x86_64.tar.gz zellij
+      - uses: actions/upload-artifact@v4
+        with:
+          name: zellij-web-fixes-linux-x86_64
+          path: zellij-web-fixes-linux-x86_64.tar.gz
