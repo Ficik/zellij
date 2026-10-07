@@ -226,13 +226,31 @@ pub struct WebCli {
     pub server_startup_timeout: Option<u64>,
     /// Create a login token for the web interface, will only be displayed once and cannot later be
     /// retrieved. Returns the token name and the token.
-    #[clap(long, value_parser, exclusive(true), display_order = 7)]
+    #[clap(
+        long,
+        value_parser,
+        group = "token_creation",
+        conflicts_with_all(&["start", "stop", "status", "timeout", "daemonize", "server_startup_timeout", "ip", "port", "cert", "key"]),
+        display_order = 7
+    )]
     pub create_token: bool,
     /// Optional name for the token
-    #[clap(long, value_parser, value_name = "TOKEN_NAME", display_order = 8)]
+    #[clap(
+        long,
+        value_parser,
+        requires = "token_creation",
+        value_name = "TOKEN_NAME",
+        display_order = 8
+    )]
     pub token_name: Option<String>,
     /// Create a read-only login token (can only attach to existing sessions as watcher)
-    #[clap(long, value_parser, exclusive(true), display_order = 9)]
+    #[clap(
+        long,
+        value_parser,
+        group = "token_creation",
+        conflicts_with_all(&["start", "stop", "status", "timeout", "daemonize", "server_startup_timeout", "ip", "port", "cert", "key"]),
+        display_order = 9
+    )]
     pub create_read_only_token: bool,
     /// Revoke a login token by its name
     #[clap(
@@ -1592,6 +1610,69 @@ tail -f /tmp/my-live-logfile | zellij action pipe --name logs --plugin https://e
 mod tests {
     use super::*;
     use clap::Parser;
+
+    #[test]
+    fn web_named_tokens() {
+        for flag in ["--create-token", "--create-read-only-token"] {
+            for args in [
+                vec!["zellij", "web", flag, "--token-name", "Test"],
+                vec!["zellij", "web", "--token-name", "Test", flag],
+                vec!["zellij", "web", flag],
+            ] {
+                let cli = CliArgs::try_parse_from(&args).unwrap();
+                let Some(Command::Web(web)) = cli.command else {
+                    panic!("expected web command")
+                };
+                assert_eq!(web.create_token, flag == "--create-token");
+                assert_eq!(
+                    web.create_read_only_token,
+                    flag == "--create-read-only-token"
+                );
+                assert_eq!(
+                    web.token_name.as_deref(),
+                    if args.len() > 3 { Some("Test") } else { None }
+                );
+                assert!(!web.get_start());
+            }
+        }
+    }
+
+    #[test]
+    fn web_token_name_requires_creation() {
+        assert!(CliArgs::try_parse_from(["zellij", "web", "--token-name", "Test"]).is_err());
+    }
+
+    #[test]
+    fn web_token_creation_conflicts_with_other_operations() {
+        for flag in ["--create-token", "--create-read-only-token"] {
+            for other in [
+                vec!["--start"],
+                vec!["--stop"],
+                vec!["--status"],
+                vec!["--daemonize"],
+                vec!["--server-startup-timeout", "10"],
+                vec!["--ip", "127.0.0.1"],
+                vec!["--port", "8082"],
+                vec!["--cert", "cert.pem"],
+                vec!["--key", "key.pem"],
+                vec!["--revoke-token", "Test"],
+                vec!["--revoke-all-tokens"],
+                vec!["--list-tokens"],
+                vec!["--timeout", "1"],
+            ] {
+                let mut args = vec!["zellij", "web", flag, "--token-name", "Test"];
+                args.extend(other);
+                assert!(CliArgs::try_parse_from(&args).is_err(), "accepted {args:?}");
+            }
+        }
+        assert!(CliArgs::try_parse_from([
+            "zellij",
+            "web",
+            "--create-token",
+            "--create-read-only-token"
+        ])
+        .is_err());
+    }
 
     fn parse_subscribe(args: &[&str]) -> SubscribeCli {
         let mut full_args = vec!["zellij"];
