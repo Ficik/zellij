@@ -38,3 +38,35 @@ body {
     overscroll-behavior: contain;
     touch-action: pan-y;
 }
+
+/* Keep the fullscreen exit control reachable even when Escape is captured. */
+#zj-keyboard-capture {
+    position: fixed;
+    top: 4px;
+    right: 12px;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    max-width: calc(100vw - 24px);
+    font: 12px sans-serif;
+    color: #eee;
+}
+
+#zj-keyboard-capture button,
+#zj-keyboard-capture span:not(:empty) {
+    background: #222;
+    border: 1px solid #777;
+    border-radius: 4px;
+    padding: 5px 8px;
+    color: inherit;
+}
+
+#zj-keyboard-capture button {
+    cursor: pointer;
+    flex-shrink: 0;
+}
+
+#zj-keyboard-capture button:focus-visible {
+    outline: 2px solid #fff;
+}

@@ -3,6 +3,7 @@ import {
     installSoftKeyboardCapture,
     suppressSoftKeyboardOnTouch,
 } from "./soft-keyboard.js";
+import { installKeyboardCapture } from "./keyboard-lock.js";
 import { installCustomKeyHandler } from "./key-handler.js";
 import { installMouseHandlers } from "./mouse.js";
 import { createPinchController } from "./pinch.js";
@@ -16,6 +17,7 @@ export function setupInputHandlers(term, fitAddon, sendFunction) {
     installSoftKeyboardCapture(term, sendFunction);
     suppressSoftKeyboardOnTouch(term);
     installCustomKeyHandler(term, sendFunction);
+    installKeyboardCapture(term);
 
     const terminalElement = document.getElementById("terminal");
     initMobilePan({ term });

@@ -16,6 +16,7 @@ const MODULE_ORDER: &[&str] = &[
     "ime-bypass",
     "soft-keyboard",
     "key-handler",
+    "keyboard-lock",
     "mouse",
     "pinch",
     "mobile-pan",
